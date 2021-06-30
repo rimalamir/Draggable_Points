@@ -6,12 +6,18 @@
 //
 
 import UIKit
+
 extension CGFloat {
+    
+    /// Generate random number between 0 to 1
+    /// - Returns: Random number in region 0 to 1
     static func random() -> CGFloat {
         return CGFloat(arc4random()) / CGFloat(UInt32.max)
     }
 }
 extension UIColor {
+    /// Generate random color
+    /// - Returns: Random color based on random RGB values
     static func random() -> UIColor {
         return UIColor(
             red:   .random(),
@@ -22,6 +28,7 @@ extension UIColor {
     }
 }
 
+/// Custom shape layer, so that specific shapes can be manipulated leaving other layers intact, can be achieved same using protocols too
 class CustomCAShapeLayer: CAShapeLayer {
     override init() {
         super.init()
@@ -32,7 +39,7 @@ class CustomCAShapeLayer: CAShapeLayer {
     }
 }
 
-class CustomLineLayer: CAShapeLayer {
+/*class CustomLineLayer: CAShapeLayer {
     override init() {
         super.init()
     }
@@ -40,36 +47,31 @@ class CustomLineLayer: CAShapeLayer {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-}
+ } */
+
 class ViewController : UIViewController {
-    var allPaths = [CGMutablePath]()
-    
-    var path1 = CGMutablePath()
-    var path2 = CGMutablePath()
-    
+
+    /// Collecrion of shape layers
     var shapeLayers = [CustomCAShapeLayer()]
+    /// Collection of different paths, paths are used to define shape layer and manipulate its properties
     var paths = [CGMutablePath()]
+
     
-    var shapeLayer1 = CustomCAShapeLayer()
-    var shapeLayer2 = CustomCAShapeLayer()
-    
-    var path3 = CGMutablePath()
-    
-    var shapeLayer3 = CustomCAShapeLayer()
-    
-    //    var circleCount = 0
+    /// Path which is being manipulated, path of current shape layer
     var currentPath = CGMutablePath()
-    var allShapeLayers = [CustomCAShapeLayer]()
+    
+    /// Shape which is being manipulated,
     var currentShapeLayer =  CustomCAShapeLayer()
-    var allLineLayers = [CustomLineLayer]()
-    var currentLineLayer = CustomLineLayer()
+    
+    
     typealias ArrayOfCircles = [CircleView]
-    var currentRegionIndex: Int = 0 {
-        didSet {
-            print("Changed")
-        }
-    }
+    
+    
+    /// Unique value associated with each region, region is a collection of points forming an area
+    var currentRegionIndex: Int = 0
+    
     var currentColor = UIColor.random()
+    
     var currentRegion = ArrayOfCircles() {
         didSet {
             if currentRegion != ArrayOfCircles() {
@@ -77,12 +79,10 @@ class ViewController : UIViewController {
             }
         }
     }
+    
+    /// [[CircleView]] -> All regions in current view: Regions are collection of points that form a shape
     var arrayOfCircles = [ArrayOfCircles]()
-    //    {
-    //        didSet {
-    //            addCircles(circle: arrayOfCircles[currentRegionIndex].last!)
-    //        }
-    //    }
+    
     override func loadView() {
         let view = UIView()
         view.backgroundColor = .white
@@ -91,11 +91,13 @@ class ViewController : UIViewController {
         
     }
     
+    /// Adds unique circle at point touched on screen
+    /// - Parameter circle: The circular point that is to be added on screen
     private func addCircles(circle: CircleView) {
         circle.backgroundColor = currentColor
         view.addSubview(circle)
         
-        
+        //Add tap gesture recognizer to the point, so that it can be moved about the screen
         circle.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(didPan(gesture:))))
         if currentRegion.count > 1 {
             view.layer.addSublayer(currentRegion[currentRegion.count - 2].lineTo(circle: circle))
@@ -114,6 +116,8 @@ class ViewController : UIViewController {
         circle.alpha = 0.6
         circle.layer.zPosition = 100
         drawOnlayer(pointOnRegionWithIndex: currentRegionIndex)
+        
+        ///If distance is too close to first point, close the path
         if (20 ... 50).contains(distanceFromFirstPoint) {
             closePath()
         }
@@ -121,37 +125,13 @@ class ViewController : UIViewController {
         
     }
     
+    /// Shade current path with required color
+    /// - Parameter pointOnRegionWithIndex: The index that uniquely identifies each region
     private func drawOnlayer(pointOnRegionWithIndex: Int) {
-        //        if !allPaths.isEmpty {
-        //            currentPath = CGMutablePath()//allPaths[currentRegionIndex]//CGMutablePath()
-        //        } else {
-        //            currentPath = CGMutablePath()
-        //        }
+        
         currentPath = CGMutablePath()//paths[pointOnRegionWithIndex]
         currentShapeLayer = shapeLayers[pointOnRegionWithIndex]
-        /*   if pointOnRegionWithIndex == 0 {
-         path1 = CGMutablePath()
-         currentPath = path1
-         shapeLayer1.fillColor = UIColor.blue.withAlphaComponent(0.5).cgColor
-         currentShapeLayer = shapeLayer1
-         
-         } else if pointOnRegionWithIndex == 1 {
-         path2 = CGMutablePath()
-         currentPath = path2
-         shapeLayer2.fillColor = UIColor.blue.withAlphaComponent(0.5).cgColor
-         currentShapeLayer = shapeLayer2
-         
-         }
-         
-         else if pointOnRegionWithIndex == 2 {
-         path3 = CGMutablePath()
-         currentPath = path3
-         shapeLayer3.fillColor = UIColor.blue.withAlphaComponent(0.5).cgColor
-         currentShapeLayer = shapeLayer3
-         
-         } */
-        //        currentPath = CGMutablePath()
-        //        currentShapeLayer.path = nil
+        
         
         var tempAllElements = arrayOfCircles
         tempAllElements.append(currentRegion)
@@ -167,10 +147,13 @@ class ViewController : UIViewController {
         currentShapeLayer.fillRule = .nonZero
         currentShapeLayer.allowsGroupOpacity = true
         currentShapeLayer.fillColor = UIColor.blue.withAlphaComponent(0.5).cgColor
+        ///Insert shape on top of most layers, except point and lines
         view.layer.insertSublayer(currentShapeLayer, at: 98)
         
     }
     
+    
+    /// Current path is complete, start working on next path:
     private func closePath() {
         currentRegion.forEach { _circle in
             _circle.backgroundColor = .systemPink
@@ -187,21 +170,21 @@ class ViewController : UIViewController {
         
     }
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         
         guard let location = touches.first?.location(in: view) else { return }
-        
+        // For other manipulations, when touch is close to any point on screen
         if checkIfExists(for: location) {
-            //            if currentRegion.count == 0 {
-            //                let circle = CircleView(frame: CGRect(x: location.x, y: location.y, width: 20, height: 20))
-            //                currentRegion.append(circle)
-            //            }
+            
         } else {
             let circle = CircleView(frame: CGRect(x: location.x - 10, y: location.y - 10, width: 20, height: 20), id: currentRegionIndex)
             currentRegion.append(circle)
         }
     }
-    //To move
+    
+    /// Whether there exists a point in vicinity to touched location
+    /// - Parameter point: touch location
+    /// - Returns: Whether there is circle(point) on vicinity of touched location
     private func checkIfExists(for point: CGPoint) -> Bool {
         
         var _pointsToCheckAgainst = arrayOfCircles.flatMap { _view in
@@ -226,6 +209,8 @@ class ViewController : UIViewController {
         
     }
     
+    /// Move the points based on pan gesture
+    /// - Parameter gesture: Normal pan gesture
     @objc func didPan(gesture: UIPanGestureRecognizer) {
         guard let circle = gesture.view as? CircleView else {
             return
@@ -261,6 +246,11 @@ class ViewController : UIViewController {
     }
 }
 
+/// Circle view that is used to denote points
+/// All circle points have id, that associates them to region
+/// Circle (point) can have incoming line and outgoing line: Visualize edge and vertices
+/// Incoming circle: circle corresponding to incoming line
+/// Outgoint circle: circle corresponding to outgoing line
 class CircleView : UIView {
     var idOfRegion: Int?
     var outGoingLine : CAShapeLayer?
@@ -283,6 +273,9 @@ class CircleView : UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// Draw line from current circle(point) to outgoing and incoming circle
+    /// - Parameter circle: Circle (point) under discussion
+    /// - Returns: line originating and going out from current circle
     func lineTo(circle: CircleView) -> CAShapeLayer {
         let path = UIBezierPath()
         path.move(to: self.center)
